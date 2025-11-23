@@ -1,0 +1,5 @@
+{
+  "name": "Typeface Dropbox Clone",
+  "description": "A simplified file storage application allowing users to upload, view, and manage files with a secure login system.",
+  "requestFramePermissions": []
+}
