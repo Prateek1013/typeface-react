@@ -29,14 +29,13 @@ export const Home = ({ user }) => {
       });
       if (response.ok) {
         const data = await response.json();
-        // Map backend response to frontend file structure
         const mappedFiles = data.map(f => ({
-          id: f.url.split('/').pop(), // Extract ID from URL
+          id: f.url.split('/').pop(),
           name: f.name,
           type: f.type,
           size: f.size,
           url: f.url,
-          createdAt: Date.now() // Backend doesn't return createdAt in list yet, using current time as placeholder
+          createdAt: Date.now()
         }));
         setFiles(mappedFiles);
       }
@@ -97,7 +96,7 @@ export const Home = ({ user }) => {
       });
 
       if (response.ok) {
-        await loadFiles(); // Reload list after upload
+        await loadFiles();
       } else {
         alert('File upload failed');
       }

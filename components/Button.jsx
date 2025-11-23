@@ -17,7 +17,7 @@ export const Button = ({
     primary: "border-transparent text-white bg-red-600 hover:bg-red-700 focus:ring-red-500",
     secondary: "border-transparent text-red-700 bg-red-100 hover:bg-red-200 focus:ring-red-500",
     outline: "border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:ring-red-500",
-    danger: "border-transparent text-white bg-red-600 hover:bg-red-700 focus:ring-red-500" // Same as primary for this brand, conceptually
+    danger: "border-transparent text-white bg-red-600 hover:bg-red-700 focus:ring-red-500" 
   };
 
   const widthClass = fullWidth ? "w-full" : "";

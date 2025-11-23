@@ -32,7 +32,6 @@ export const FileViewer = () => {
         setFileUrl(url);
         setFileType(response.headers.get('content-type'));
         
-        // Try to get filename from content-disposition
         const contentDisposition = response.headers.get('content-disposition');
         let name = 'downloaded_file';
         if (contentDisposition) {

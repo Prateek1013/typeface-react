@@ -24,12 +24,6 @@ const AppContent = () => {
   useEffect(() => {
     const token = Cookies.get('token');
     if (token) {
-      // For now, we'll just set a dummy user if token exists.
-      // Ideally, we should decode the token or fetch user details.
-      // Let's decode the token payload if possible, or just use the email from login.
-      // Since we don't have a "me" endpoint yet, we'll rely on what we have.
-      // Actually, let's just set the user as authenticated.
-      // We can store user info in localStorage or another cookie for display.
       const userEmail = localStorage.getItem('userEmail');
       if (userEmail) {
         setUser({ email: userEmail, name: userEmail.split('@')[0] });
@@ -38,11 +32,10 @@ const AppContent = () => {
   }, []);
 
   const handleLogin = (token, email) => {
-    Cookies.set('token', token, { expires: 7 }); // Expires in 7 days
+    Cookies.set('token', token, { expires: 7 });
     localStorage.setItem('userEmail', email);
     const newUser = { id: 'user', email, name: email.split('@')[0] };
     setUser(newUser);
-    // Determine where to go
     const from = location.state?.from?.pathname || '/home';
     navigate(from, { replace: true });
   };
