@@ -1,95 +1,139 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FileType } from '../types';
+import Cookies from 'js-cookie';
+import { Button } from '../components/Button';
+import { ConfirmationDialog } from '../components/ConfirmationDialog';
 
 export const FileViewer = () => {
-  const { id: fileId } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
-  const [file, setFile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [fileUrl, setFileUrl] = useState(null);
+  const [fileType, setFileType] = useState(null);
+  const [fileName, setFileName] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [deleteConfirmation, setDeleteConfirmation] = useState(false);
 
   useEffect(() => {
-    // Simulate fetching file
-    setTimeout(() => {
-      setFile({
-        id: fileId,
-        name: 'Demo File.pdf',
-        type: FileType.PDF,
-        size: 1024 * 1024 * 2, // 2MB
-        url: '#',
-        createdAt: Date.now()
-      });
-      setLoading(false);
-    }, 500);
-  }, [fileId]);
+    fetchFile();
+  }, [id]);
 
-  const handleBack = () => {
-    navigate(-1);
+  const fetchFile = async () => {
+    try {
+      const token = Cookies.get('token');
+      const response = await fetch(`/api/files/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        setFileUrl(url);
+        setFileType(response.headers.get('content-type'));
+        
+        // Try to get filename from content-disposition
+        const contentDisposition = response.headers.get('content-disposition');
+        let name = 'downloaded_file';
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+          if (filenameMatch && filenameMatch.length === 2)
+            name = filenameMatch[1];
+        }
+        setFileName(name);
+      } else {
+        console.error('Failed to fetch file');
+      }
+    } catch (error) {
+      console.error('Error fetching file:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  const handleDownload = () => {
+    if (fileUrl) {
+      const a = document.createElement('a');
+      a.href = fileUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  };
 
-  if (!file) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">File not found</h2>
-        <button
-          onClick={handleBack}
-          className="text-blue-600 hover:text-blue-800"
-        >
-          Go back home
-        </button>
-      </div>
-    );
+  const handleDelete = async () => {
+    try {
+      const token = Cookies.get('token');
+      const response = await fetch(`/api/files/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        navigate('/home');
+      } else {
+        alert('Failed to delete file');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete file');
+    }
+  };
+
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
-      <div className="bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between">
-        <div className="flex items-center">
-          <button
-            onClick={handleBack}
-            className="mr-4 p-2 rounded-full hover:bg-gray-100"
-          >
-            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-          </button>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="bg-white shadow sm:rounded-lg">
+        <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">{file.name}</h1>
-            <p className="text-sm text-gray-500">
-              {(file.size / 1024 / 1024).toFixed(2)} MB • {new Date(file.createdAt).toLocaleDateString()}
+            <h3 className="text-lg leading-6 font-medium text-gray-900">
+              {fileName}
+            </h3>
+            <p className="mt-1 max-w-2xl text-sm text-gray-500">
+              {fileType}
             </p>
           </div>
+          <div className="flex space-x-3">
+            <Button onClick={handleDownload}>
+              Download
+            </Button>
+            <Button 
+              onClick={() => setDeleteConfirmation(true)}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-500"
+            >
+              Delete
+            </Button>
+          </div>
         </div>
-        <div className="flex space-x-3">
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-            Download
-          </button>
-          <button className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-            Share
-          </button>
+        <div className="border-t border-gray-200 px-4 py-5 sm:p-6 flex justify-center bg-gray-50 min-h-[500px] items-center">
+          {fileType && fileType.startsWith('image/') ? (
+            <img src={fileUrl} alt={fileName} className="max-w-full max-h-[70vh] object-contain" />
+          ) : fileType === 'application/pdf' ? (
+             <iframe src={fileUrl} className="w-full h-[70vh]" title={fileName}></iframe>
+          ) : (
+            <div className="text-center">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              <p className="mt-2 text-sm text-gray-500">Preview not available for this file type.</p>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-8 flex items-center justify-center">
-        <div className="bg-white shadow-lg rounded-lg p-12 max-w-4xl w-full aspect-video flex items-center justify-center bg-gray-50 border-2 border-dashed border-gray-200">
-          <div className="text-center">
-            <div className="text-6xl mb-4">
-              {file.type === FileType.IMAGE ? '🖼️' : 
-               file.type === FileType.PDF ? '📄' : 
-               file.type === FileType.DOC ? '📝' : '📁'}
-            </div>
-            <p className="text-gray-500">Preview not available in demo mode</p>
-          </div>
-        </div>
-      </div>
+      <ConfirmationDialog
+        isOpen={deleteConfirmation}
+        title="Delete File"
+        message="Are you sure you want to delete this file? This action cannot be undone."
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteConfirmation(false)}
+      />
     </div>
   );
 };

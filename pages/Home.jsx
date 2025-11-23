@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { FileCard } from '../components/FileCard';
 import { Button } from '../components/Button';
 import { FileType } from '../types';
+import { ConfirmationDialog } from '../components/ConfirmationDialog';
 
 
 export const Home = ({ user }) => {
@@ -11,6 +12,8 @@ export const Home = ({ user }) => {
   const [files, setFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
+
+  const [deleteConfirmation, setDeleteConfirmation] = useState({ isOpen: false, fileId: null });
 
   useEffect(() => {
     loadFiles();
@@ -42,35 +45,17 @@ export const Home = ({ user }) => {
     }
   };
 
-  const handleFileClick = async (fileId, fileName) => {
-    try {
-      const token = Cookies.get('token');
-      const response = await fetch(`/api/files/${fileId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }
-    } catch (error) {
-      console.error('Failed to download file:', error);
-    }
+  const handleFileClick = (fileId) => {
+    navigate(`/view/${fileId}`);
   };
 
-  const handleDeleteFile = async (fileId) => {
-    if (!window.confirm('Are you sure you want to delete this file?')) {
-      return;
-    }
+  const handleDeleteClick = (fileId) => {
+    setDeleteConfirmation({ isOpen: true, fileId });
+  };
+
+  const handleConfirmDelete = async () => {
+    const fileId = deleteConfirmation.fileId;
+    if (!fileId) return;
 
     try {
       const token = Cookies.get('token');
@@ -83,6 +68,7 @@ export const Home = ({ user }) => {
 
       if (response.ok) {
         setFiles(prev => prev.filter(f => f.id !== fileId));
+        setDeleteConfirmation({ isOpen: false, fileId: null });
       } else {
         alert('Failed to delete file');
       }
@@ -159,12 +145,20 @@ export const Home = ({ user }) => {
             <FileCard 
               key={file.id} 
               file={file} 
-              onClick={() => handleFileClick(file.id, file.name)} 
-              onDelete={handleDeleteFile}
+              onClick={() => handleFileClick(file.id)} 
+              onDelete={handleDeleteClick}
             />
           ))}
         </div>
       )}
+
+      <ConfirmationDialog
+        isOpen={deleteConfirmation.isOpen}
+        title="Delete File"
+        message="Are you sure you want to delete this file? This action cannot be undone."
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteConfirmation({ isOpen: false, fileId: null })}
+      />
     </div>
   );
 };

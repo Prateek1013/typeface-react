@@ -70,7 +70,7 @@ const AppContent = () => {
             } 
           />
           <Route 
-            path="/file/:id" 
+            path="/view/:id" 
             element={
               <ProtectedRoute user={user}>
                 <FileViewer />
